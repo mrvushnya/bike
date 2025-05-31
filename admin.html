@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Адмін-панель</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 2rem;
+    }
+    h1, h2 {
+      text-align: center;
+      color: #333;
+    }
+    form {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      max-width: 800px;
+      margin: 0 auto 2rem auto;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    input, textarea, button {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 1rem;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .preview-images img {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      margin: 5px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    .product-item {
+      background: white;
+      padding: 1.5rem;
+      margin: 1rem auto;
+      border-radius: 8px;
+      max-width: 800px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .product-item img {
+      max-width: 100px;
+      height: auto;
+      margin: 5px;
+    }
+    .actions {
+      margin-top: 1rem;
+    }
+    .actions button {
+      width: auto;
+      margin-right: 10px;
+      padding: 10px 15px;
+    }
+    small {
+      display: block;
+      margin-top: -8px;
+      margin-bottom: 10px;
+      color: #666;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 800px;
+      margin: 0 auto 2rem auto;
+    }
+    .header h1 {
+      margin: 0;
+    }
+    #userInfo {
+      display: none;
+      align-items: center;
+      gap: 10px;
+    }
+    #userInfo img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+    }
+    #userInfo button {
+      padding: 6px 10px;
+      background: #f44336;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    #userInfo button:hover {
+      background: #c0392b;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Адмін-панель</h1>
+    <div id="userInfo">
+      <img src="https://th.bing.com/th/id/OIP.hyaP7bLgD-Tx-GwTuFFzyQHaHa?rs=1&pid=ImgDetMain" alt="Avatar">
+      <span id="adminName"></span>
+      <button onclick="logout()">Вийти</button>
+    </div>
+  </div>
+
+  <div style="text-align:center; margin-bottom: 1rem;">
+    <button onclick="showUsers()">👥 Користувачі</button>
+    <button onclick="showOrders()">📦 Замовлення</button>
+  </div>
+
+  <div id="data-display" style="max-width:800px; margin:0 auto;"></div>
+
+  <form id="product-form">
+    <input type="hidden" id="edit-index">
+    <input type="text" id="name" placeholder="Назва товару" required>
+    <input type="text" id="imageMain" placeholder="URL головного зображення" required>
+    <textarea id="imagesExtra" placeholder="URL інших фото (через кому)"></textarea>
+    <small>Наприклад: https://img1.jpg, https://img2.jpg</small>
+    <div id="extra-preview" class="preview-images"></div>
+    <textarea id="description" placeholder="Опис" required></textarea>
+    <input type="text" id="price" placeholder="Ціна" required>
+    <button type="submit">💾 Зберегти товар</button>
+  </form>
+
+  <h2 style="text-align:center;">Список товарів</h2>
+  <div id="product-list"></div>
+
+  <script>
+    const admin = JSON.parse(localStorage.getItem('currentUser'));
+    if (admin && admin.username === 'admin') {
+      document.getElementById('userInfo').style.display = 'flex';
+      document.getElementById('adminName').textContent = admin.username;
+    } else {
+      window.location.href = 'index.html';
+    }
+
+    function logout() {
+      localStorage.removeItem('currentUser');
+      window.location.href = 'index.html';
+    }
+
+    function renderProducts() {
+      const list = document.getElementById("product-list");
+      list.innerHTML = "";
+      const products = JSON.parse(localStorage.getItem("products") || "[]");
+      products.forEach((product, index) => {
+        const div = document.createElement("div");
+        div.className = "product-item";
+        div.innerHTML = `
+          <h3>${product.name}</h3>
+          <p><strong>Ціна:</strong> ${product.price}</p>
+          <img src="${product.image}" alt="${product.name}">
+          <div class="description-container">
+            <button onclick="toggleDescription(this)">🔽 Показати опис</button>
+            <p class="product-description" style="display: none;"><em>${product.description}</em></p>
+          </div>
+          <div>
+            ${(product.images || []).map(url => `<img src="${url}" alt="Фото">`).join("")}
+          </div>
+          <div class="actions">
+            <button onclick="editProduct(${index})">✏️ Редагувати</button>
+            <button onclick="deleteProduct(${index})">🗑️ Видалити</button>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    function toggleDescription(button) {
+      const desc = button.nextElementSibling;
+      if (desc.style.display === "none") {
+        desc.style.display = "block";
+        button.textContent = "🔼 Сховати опис";
+      } else {
+        desc.style.display = "none";
+        button.textContent = "🔽 Показати опис";
+      }
+    }
+
+    function editProduct(index) {
+      const products = JSON.parse(localStorage.getItem("products") || "[]");
+      const p = products[index];
+      document.getElementById("edit-index").value = index;
+      document.getElementById("name").value = p.name;
+      document.getElementById("imageMain").value = p.image;
+      document.getElementById("imagesExtra").value = (p.images || []).join(", ");
+      document.getElementById("description").value = p.description;
+      document.getElementById("price").value = p.price;
+      updatePreview();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function deleteProduct(index) {
+      if (confirm("Ви впевнені, що хочете видалити цей товар?")) {
+        const products = JSON.parse(localStorage.getItem("products") || "[]");
+        products.splice(index, 1);
+        localStorage.setItem("products", JSON.stringify(products));
+        renderProducts();
+      }
+    }
+
+    function updatePreview() {
+      const preview = document.getElementById("extra-preview");
+      const urls = document.getElementById("imagesExtra").value.split(',').map(url => url.trim()).filter(Boolean);
+      preview.innerHTML = urls.map(url => `<img src="${url}" alt="Превʼю">`).join("");
+    }
+
+    document.getElementById("imagesExtra").addEventListener("input", updatePreview);
+
+    document.getElementById("product-form").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const products = JSON.parse(localStorage.getItem("products") || "[]");
+      const index = document.getElementById("edit-index").value;
+      const product = {
+        id: index !== "" ? products[index].id : Date.now(),
+        name: document.getElementById("name").value,
+        image: document.getElementById("imageMain").value,
+        images: document.getElementById("imagesExtra").value.trim() === "" ? [] :
+                document.getElementById("imagesExtra").value.split(',').map(url => url.trim()),
+        description: document.getElementById("description").value,
+        price: document.getElementById("price").value
+      };
+
+      if (index !== "") {
+        products[index] = product;
+      } else {
+        products.push(product);
+      }
+
+      localStorage.setItem("products", JSON.stringify(products));
+      this.reset();
+      document.getElementById("edit-index").value = "";
+      document.getElementById("extra-preview").innerHTML = "";
+      renderProducts();
+    });
+
+    function showUsers() {
+      const users = JSON.parse(localStorage.getItem("users") || "[]");
+      const container = document.getElementById("data-display");
+      if (users.length === 0) {
+        container.innerHTML = "<p>Користувачів не знайдено.</p>";
+        return;
+      }
+
+      container.innerHTML = "<h2>Список користувачів</h2>" + users.map(user => `
+        <div style="background:white; padding:1rem; margin:0.5rem 0; border-radius:5px;">
+          <strong>Ім'я:</strong> ${user.username}<br>
+          <strong>Email:</strong> ${user.email || "—"}
+        </div>
+      `).join("");
+    }
+
+   function showOrders() {
+    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
+    const container = document.getElementById("data-display");
+
+    if (orders.length === 0) {
+      container.innerHTML = "<p>Замовлень не знайдено.</p>";
+      return;
+    }
+
+    container.innerHTML = "<h2>Список замовлень</h2>" + orders.map((order, index) => `
+      <div style="background:white; padding:1rem; margin:0.5rem 0; border-radius:5px;">
+        <strong>Ім’я:</strong> ${order.name} ${order.lastName}<br>
+        <strong>Телефон:</strong> ${order.phone}<br>
+        <strong>Email:</strong> ${order.email}<br>
+        <strong>Товар:</strong> ${order.product.name} — ${order.product.price}<br>
+        <strong>Час:</strong> ${order.timestamp}<br>
+        <label>Статус:
+          <select onchange="updateOrderStatus(${index}, this.value)">
+            <option value="Очікує" ${order.status === "Очікує" ? "selected" : ""}>Очікує</option>
+            <option value="Виконано" ${order.status === "Виконано" ? "selected" : ""}>Виконано</option>
+            <option value="Скасовано" ${order.status === "Скасовано" ? "selected" : ""}>Скасовано</option>
+          </select>
+        </label>
+      </div>
+    `).join("");
+  }
+
+  function updateOrderStatus(index, newStatus) {
+    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
+    if (orders[index]) {
+      orders[index].status = newStatus;
+      localStorage.setItem("orders", JSON.stringify(orders));
+      alert("Статус оновлено!");
+    }
+  }
+
+    renderProducts();
+  </script>
+</body>
+</html>

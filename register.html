@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Реєстрація</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      background-color: #f4f4f4;
+    }
+    form {
+      max-width: 400px;
+      margin: auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .google-btn {
+      background-color: #db4437;
+      color: white;
+    }
+    .message {
+      text-align: center;
+      color: red;
+      margin-top: 10px;
+    }
+  </style>
+  <!-- Firebase Modular SDK -->
+  <script type="module">
+    // Import потрібних функцій із Firebase Modular SDK
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyDjAfLUnNDeW5UxPOOzy-EKjQvTnBYBWGc",
+      authDomain: "bike-8f37b.firebaseapp.com",
+      projectId: "bike-8f37b",
+      storageBucket: "bike-8f37b.firebasestorage.app",
+      messagingSenderId: "102921882027",
+      appId: "1:102921882027:web:d6a7ec2978958def72aaee",
+      measurementId: "G-RK9VWDP4NF"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+
+    window.signInWithGoogle = () => {
+      signInWithPopup(auth, provider)
+        .then((result) => {
+          const user = result.user;
+          alert(`Ви увійшли як ${user.displayName} (${user.email})`);
+          window.location.href = "dashboard.html"; // Заміни на потрібну сторінку
+        })
+        .catch((error) => {
+          console.error(error);
+          alert("Помилка входу: " + error.message);
+        });
+    };
+  </script>
+</head>
+<body>
+<h2 style="text-align:center;">Реєстрація</h2>
+<form id="registerForm">
+  <input type="text" id="username" placeholder="Ім’я користувача" required>
+  <input type="email" id="email" placeholder="Email" required>
+  <input type="password" id="password" placeholder="Пароль" required>
+  <button type="submit">Зареєструватись</button>
+  <button type="button" class="google-btn" onclick="signInWithGoogle()">Увійти через Google</button>
+  <div id="message" class="message"></div>
+</form>
+
+<script>
+  document.getElementById("registerForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    const username = document.getElementById("username").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const messageDiv = document.getElementById("message");
+
+    const users = JSON.parse(localStorage.getItem("users") || "[]");
+    if (users.find(u => u.username.toLowerCase() === username.toLowerCase())) {
+      messageDiv.textContent = "Користувач з таким ім'ям вже існує!";
+      return;
+    }
+
+    users.push({ username, email, password });
+    localStorage.setItem("users", JSON.stringify(users));
+
+    alert("Реєстрація успішна!");
+    window.location.href = "login.html";
+  });
+</script>
+</body>
+</html>
